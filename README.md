@@ -1,108 +1,98 @@
-# 🎯 Cortify AI - P2P Audio Conversations
+# 🐉 DND — AI Dungeon Master
 
-A Cluly-like application with real-time P2P audio conversations and AI-powered transcription.
+A browser-based D&D game with an AI Dungeon Master, isometric 3D world, and multiplayer turn-based gameplay.
+
+![Three.js](https://img.shields.io/badge/Three.js-black?logo=threedotjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000?logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+
+## ✨ Features
+
+- **AI Dungeon Master** — Groq LLM narrates the story, scores player actions, and drives the campaign
+- **Isometric 3D World** — Procedural Three.js map with trees, rocks, bushes, fog, fireflies, and player tokens
+- **DM Character Token** — Robed wizard NPC on the map with speech bubbles for DM narration
+- **Floating Input Chathead** — Type actions directly above your character on the map (quick actions, mic, text input)
+- **Multiplayer Turn System** — Round-robin turns with character creation party setup
+- **Dice Roller** — Animated d4–d20 dice, usable both in chat and as a floating bar on the map
+- **Voice I/O** — DM text-to-speech (Deepgram) + player speech-to-text via browser mic
+- **Glassmorphism UI** — Collapsible sidebar, character sheets, scoreboard, voice controls — all floating over the 3D world
+- **Campaign Generator** — Randomized story hooks, towns, and themes
 
 ## 🏗️ Project Structure
 
 ```
-Cortify/
-├── frontend/           # Complete Next.js + Electron Frontend
-│   ├── package.json    # Frontend dependencies
-│   ├── src/           # React components & utils
-│   ├── pages/         # Next.js pages
-│   ├── public/        # Static assets
-│   ├── electron/      # Electron main process
-│   ├── next.config.js # Next.js configuration
-│   ├── tailwind.config.js
-│   └── tsconfig.json
+DND/
+├── frontend/           # Next.js + Three.js Frontend
+│   ├── pages/         # Next.js pages (dnd.tsx is the game)
+│   ├── src/
+│   │   ├── components/dnd/  # Game UI components
+│   │   │   ├── IsometricWorld.tsx   # Three.js 3D world
+│   │   │   ├── CharacterCreator.tsx # Character creation form
+│   │   │   ├── PartySetupScreen.tsx # Party + campaign setup
+│   │   │   ├── DiceRoller.tsx       # Animated dice roller
+│   │   │   ├── MessageBubble.tsx    # Chat message display
+│   │   │   ├── CollapsiblePanel.tsx # Sidebar panel wrapper
+│   │   │   └── ...
+│   │   ├── hooks/           # useDnDGame, useDnDVoice
+│   │   ├── services/        # API + voice service layers
+│   │   └── data/            # Story templates
+│   └── package.json
 │
-├── backend/            # Complete Node.js Backend
-│   ├── package.json    # Backend dependencies
+├── backend/            # Express API Proxy
+│   ├── src/server.js   # Proxies Groq LLM + Deepgram APIs
+│   └── package.json
 │   ├── src/           # Server code
 │   │   └── server.js  # Socket.io signaling server
 │   └── .env           # Backend environment
 │
-├── P2P_SETUP.md       # Detailed P2P feature guide
-└── README.md          # This file
+└── README.md
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
-- Deepgram API key (for transcription)
+- Node.js 18+
+- A [Groq](https://console.groq.com/) API key (free tier works)
+- *(Optional)* A [Deepgram](https://deepgram.com/) API key for DM voice
 
-### 1. Setup Backend
+### 1. Backend
 ```bash
 cd backend
 npm install
-cp .env.example .env  # Add your Deepgram API key
-npm run dev           # Starts on http://localhost:3001
+cp .env.example .env   # Add GROQ_API_KEY (and optionally DEEPGRAM_API_KEY)
+npm run dev             # Starts on http://localhost:3001
 ```
 
-### 2. Setup Frontend (New Terminal)
+### 2. Frontend
 ```bash
 cd frontend
 npm install
-npm run dev           # Starts Next.js + Electron
+npm run dev             # Starts on http://localhost:3000
 ```
 
-## ✨ Features
+Then open **http://localhost:3000/dnd** to play.
 
-### 🎤 **P2P Real-Time Audio Conversations**
-- WebRTC-based peer-to-peer audio streaming
-- Create/join rooms with invite system
-- Real-time transcription for both participants
-- Cross-device conversations
+## 🎮 How to Play
 
-### 🖥️ **System Audio Capture**
-- Capture microphone input
-- System audio capture (YouTube, meetings)
-- Multiple participant support
+1. **Create your party** — Pick a campaign theme, name your characters, choose race/class/background
+2. **Explore the world** — The AI Dungeon Master sets the scene; your 3D tokens appear on the map
+3. **Take actions** — Type what your character does (or use quick actions / voice), roll dice
+4. **Turn-based** — Each player acts in turn; the DM responds with narration and scoring
+5. **Toggle views** — Switch between the chat panel and the full 3D map with floating chatheads
 
-### 🤖 **AI Integration**
-- Deepgram real-time transcription
-- Speaker identification (P1/P2)
-- Integrated chat interface
+## 🔧 Environment Variables
 
-## 🎯 Usage
-
-1. **Start Backend**: `cd backend && npm run dev`
-2. **Start Frontend**: `cd frontend && npm run dev`
-3. **Create P2P Room**: Select "👥 P2P Room" in the app
-4. **Invite Friend**: Share the room link or ID
-5. **Real-Time Conversation**: Both participants can talk and get transcribed
-
-## 📚 Documentation
-
-- [P2P Setup Guide](P2P_SETUP.md) - Detailed P2P feature instructions
-- [Frontend README](frontend/README.md) - Frontend-specific documentation
-- [Backend README](backend/README.md) - Backend API documentation
-
-## 🛠️ Development
-
-Each service runs independently:
-
-**Backend Development:**
-```bash
-cd backend
-npm run dev    # Socket.io server on :3001
-```
-
-**Frontend Development:**
-```bash
-cd frontend
-npm run dev    # Next.js on :3000 + Electron
-```
-
-## 🔧 Configuration
-
-### Backend (.env)
+### Backend `.env`
 ```env
 PORT=3001
-DEEPGRAM_API_KEY=your_api_key_here
+GROQ_API_KEY=gsk_...          # Required — powers the AI Dungeon Master
+DEEPGRAM_API_KEY=...           # Optional — enables DM text-to-speech
 ```
+
+## 📄 License
+
+MIT
 
 ### Frontend (.env)
 ```env
