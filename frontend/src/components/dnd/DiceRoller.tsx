@@ -10,6 +10,8 @@ import { rollDice } from '../../services/dndService';
 
 interface DiceRollerProps {
   onRoll: (result: string) => void;
+  /** When provided, clicking a die calls this instead of doing the internal CSS roll */
+  onDiceClick?: (sides: number) => void;
 }
 
 const DICE = [
@@ -21,13 +23,19 @@ const DICE = [
   { sides: 20, icon: '✦', label: 'd20', color: '#c084fc' },
 ] as const;
 
-export default function DiceRoller({ onRoll }: DiceRollerProps) {
+export default function DiceRoller({ onRoll, onDiceClick }: DiceRollerProps) {
   const [rolling, setRolling] = useState<number | null>(null);
   const [lastResult, setLastResult] = useState<{ sides: number; value: number; text: string } | null>(null);
   const [showResult, setShowResult] = useState(false);
 
   const handleRoll = useCallback((sides: number) => {
     if (rolling !== null) return;
+
+    // If onDiceClick is provided, delegate to parent (map dice flow)
+    if (onDiceClick) {
+      onDiceClick(sides);
+      return;
+    }
 
     setRolling(sides);
     setShowResult(false);
@@ -44,7 +52,7 @@ export default function DiceRoller({ onRoll }: DiceRollerProps) {
       // Hide result after 4s
       setTimeout(() => setShowResult(false), 4000);
     }, 800);
-  }, [rolling, onRoll]);
+  }, [rolling, onRoll, onDiceClick]);
 
   const isNat20 = lastResult?.sides === 20 && lastResult?.value === 20;
   const isNat1 = lastResult?.sides === 20 && lastResult?.value === 1;

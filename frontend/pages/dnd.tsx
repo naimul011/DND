@@ -21,13 +21,15 @@ import {
   CharacterCreator,
   MessageBubble,
   DiceRoller,
+  DiceRollModal,
+  MapDiceOverlay,
   AnimatedTranscript,
   CharacterSheet,
   Scoreboard,
   VoiceControls,
   CollapsiblePanel,
 } from '../src/components/dnd';
-import type { WorldPlayer, ChatBubble, TokenScreenPosition } from '../src/components/dnd/IsometricWorld';
+import type { WorldPlayer, ChatBubble, TokenScreenPosition, CameraControls } from '../src/components/dnd/IsometricWorld';
 
 // Dynamically import Three.js world (no SSR — needs window/document)
 const IsometricWorld = dynamic(
@@ -76,6 +78,37 @@ export default function DnDPage() {
   // Sidebar toggle
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [chatOpen, setChatOpen] = useState(true);
+
+  // 3D Dice Modal
+  const [diceModalOpen, setDiceModalOpen] = useState(false);
+
+  // Map dice overlay (rolling on the 3D map with camera zoom)
+  const [mapDiceNotation, setMapDiceNotation] = useState<string | null>(null);
+  const cameraControlsRef = useRef<CameraControls | null>(null);
+  const handleCameraControls = useCallback((controls: CameraControls) => {
+    cameraControlsRef.current = controls;
+  }, []);
+
+  /** Called when a die button is clicked — zoom camera then roll on the map */
+  const handleMapDiceClick = useCallback((sides: number) => {
+    const notation = `1d${sides}`;
+    setMapDiceNotation(notation);
+    const playerId = game.currentTurnPlayer?.id || game.session.party[0]?.id;
+    if (playerId && cameraControlsRef.current) {
+      cameraControlsRef.current.zoomToPlayer(playerId);
+    }
+  }, [game.currentTurnPlayer, game.session.party]);
+
+  /** Called when the 3D dice on the map settle */
+  const handleMapDiceResult = useCallback((text: string, _total: number) => {
+    game.handleDiceRoll(text);
+  }, [game]);
+
+  /** Called when the result display auto-dismisses */
+  const handleMapDiceDone = useCallback(() => {
+    cameraControlsRef.current?.zoomBack();
+    setMapDiceNotation(null);
+  }, []);
 
   // World ref for projecting 3D positions to screen
   const tokenPositionsRef = useRef<TokenScreenPosition[]>([]);
@@ -156,6 +189,40 @@ export default function DnDPage() {
             <PartySetupScreen onComplete={game.handlePartySetupComplete} />
           </div>
         </div>
+
+        {/* Floating dice button during setup */}
+        <button
+          onClick={() => setDiceModalOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 20,
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(99, 60, 200, 0.3))',
+            border: '1.5px solid rgba(139, 92, 246, 0.5)',
+            color: 'white',
+            fontSize: '24px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)',
+            transition: 'all 0.2s',
+          }}
+          title="Open 3D Dice Roller"
+        >
+          🎲
+        </button>
+
+        {/* 3D Dice Modal */}
+        <DiceRollModal
+          isOpen={diceModalOpen}
+          onClose={() => setDiceModalOpen(false)}
+          onAccept={() => setDiceModalOpen(false)}
+        />
       </>
     );
   }
@@ -173,6 +240,7 @@ export default function DnDPage() {
         chatBubble={dmChatBubble}
         showDMToken={game.session.party.length > 0}
         onTokenPositions={handleTokenPositions}
+        onCameraControls={handleCameraControls}
       />
 
       {/* ─── Floating Input Chathead (above current turn player token) ─── */}
@@ -191,7 +259,7 @@ export default function DnDPage() {
 
       {/* ─── Map Dice Roller (always visible at bottom when chat closed) ─── */}
       {!chatOpen && (
-        <MapDiceRoller onRoll={game.handleDiceRoll} />
+        <MapDiceRoller onRoll={game.handleDiceRoll} onDiceClick={handleMapDiceClick} onOpen3DDice={() => setDiceModalOpen(true)} />
       )}
 
       {/* ─── UI Overlay Layer ─────────────────────────────────────── */}
@@ -265,7 +333,7 @@ export default function DnDPage() {
           pointerEvents: 'none',
         }}>
           {/* Top Bar: Turn Banner (always visible) */}
-          <TopBar game={game} chatOpen={chatOpen} setChatOpen={setChatOpen} />
+          <TopBar game={game} chatOpen={chatOpen} setChatOpen={setChatOpen} onOpenDice={() => setDiceModalOpen(true)} />
 
           {/* Chat Panel */}
           <div style={{
@@ -277,7 +345,7 @@ export default function DnDPage() {
             transition: 'opacity 0.3s ease',
             margin: '0 8px 8px 8px',
           }}>
-            <ChatArea game={game} voice={voice} />
+            <ChatArea game={game} voice={voice} onDiceClick={handleMapDiceClick} />
           </div>
         </div>
       </div>
@@ -288,6 +356,24 @@ export default function DnDPage() {
           <CharacterCreator onComplete={game.handleCharacterCreated} />
         </Modal>
       )}
+
+      {/* ─── 3D Dice Roll Modal ────────────────────────────────── */}
+      <DiceRollModal
+        isOpen={diceModalOpen}
+        onClose={() => setDiceModalOpen(false)}
+        onAccept={(result) => {
+          game.handleDiceRoll(result);
+          setDiceModalOpen(false);
+        }}
+      />
+
+      {/* ─── Map Dice Overlay (rolls on the 3D map with camera zoom) ── */}
+      <MapDiceOverlay
+        active={!!mapDiceNotation}
+        notation={mapDiceNotation}
+        onResult={handleMapDiceResult}
+        onDone={handleMapDiceDone}
+      />
     </>
   );
 }
@@ -298,10 +384,12 @@ function TopBar({
   game,
   chatOpen,
   setChatOpen,
+  onOpenDice,
 }: {
   game: ReturnType<typeof useDnDGame>;
   chatOpen: boolean;
   setChatOpen: (v: boolean) => void;
+  onOpenDice: () => void;
 }) {
   const { session, currentTurnPlayer, isCurrentPlayerTurn, getPlayerColor } = game;
 
@@ -354,6 +442,26 @@ function TopBar({
             </span>
           </div>
         )}
+
+        {/* 3D Dice Button */}
+        <button
+          onClick={onOpenDice}
+          style={{
+            padding: '4px 10px',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(251, 146, 60, 0.15))',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            letterSpacing: '0.5px',
+            transition: 'all 0.2s',
+          }}
+          title="Open 3D Dice Roller"
+        >
+          🎲 Dice
+        </button>
 
         {/* Chat Toggle — always visible */}
         <button
@@ -529,7 +637,7 @@ function Sidebar({ game, voice }: { game: ReturnType<typeof useDnDGame>; voice: 
 
 // ─── Chat Area ───────────────────────────────────────────────────────────────
 
-function ChatArea({ game, voice }: { game: ReturnType<typeof useDnDGame>; voice: ReturnType<typeof useDnDVoice> }) {
+function ChatArea({ game, voice, onDiceClick }: { game: ReturnType<typeof useDnDGame>; voice: ReturnType<typeof useDnDVoice>; onDiceClick?: (sides: number) => void }) {
   const {
     session, input, setInput, isLoading, activeCharacter, currentTurnPlayer, isCurrentPlayerTurn,
     getPlayerColor, messagesEndRef, inputRef, handleSend, handleKeyDown, handleDiceRoll,
@@ -607,7 +715,7 @@ function ChatArea({ game, voice }: { game: ReturnType<typeof useDnDGame>; voice:
           </div>
         )}
 
-        <DiceRoller onRoll={handleDiceRoll} />
+        <DiceRoller onRoll={handleDiceRoll} onDiceClick={onDiceClick} />
 
         {/* Live Transcript */}
         {(voice.liveTranscript || voice.isListening) && (
@@ -949,7 +1057,7 @@ function MapInputChathead({
 
 // ─── Map Dice Roller (floating at bottom of screen) ──────────────────────────
 
-function MapDiceRoller({ onRoll }: { onRoll: (result: string) => void }) {
+function MapDiceRoller({ onRoll, onDiceClick, onOpen3DDice }: { onRoll: (result: string) => void; onDiceClick?: (sides: number) => void; onOpen3DDice: () => void }) {
   return (
     <div style={{
       position: 'fixed',
@@ -966,8 +1074,42 @@ function MapDiceRoller({ onRoll }: { onRoll: (result: string) => void }) {
         borderRadius: '16px',
         padding: '8px 12px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(139, 92, 246, 0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
       }}>
-        <DiceRoller onRoll={onRoll} />
+        <DiceRoller onRoll={onRoll} onDiceClick={onDiceClick} />
+
+        {/* Separator */}
+        <div style={{
+          width: '1px', height: '36px',
+          background: 'rgba(255,255,255,0.08)',
+          flexShrink: 0,
+        }} />
+
+        {/* 3D Dice Button */}
+        <button
+          onClick={onOpen3DDice}
+          style={{
+            padding: '8px 14px',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(251, 146, 60, 0.15))',
+            border: '1.5px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: '10px',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 10px rgba(245, 158, 11, 0.15)',
+          }}
+          title="Open 3D Dice Roller"
+        >
+          🎲 3D
+        </button>
       </div>
     </div>
   );

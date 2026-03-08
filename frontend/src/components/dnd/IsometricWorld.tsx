@@ -50,6 +50,14 @@ export interface TokenScreenPosition {
   visible: boolean;
 }
 
+/** Imperative camera control handle exposed to parent */
+export interface CameraControls {
+  /** Smoothly zoom camera to a spot in front of the given player token */
+  zoomToPlayer: (playerId: string) => void;
+  /** Smoothly zoom camera back to the default overview position */
+  zoomBack: () => void;
+}
+
 interface IsometricWorldProps {
   /** Party members to render as tokens */
   players?: WorldPlayer[];
@@ -63,6 +71,8 @@ interface IsometricWorldProps {
   showDMToken?: boolean;
   /** Called every frame with screen positions of all tokens (for HTML overlays) */
   onTokenPositions?: (positions: TokenScreenPosition[]) => void;
+  /** Called once with imperative camera control functions */
+  onCameraControls?: (controls: CameraControls) => void;
 }
 
 // ─── Geometry Helpers ────────────────────────────────────────────────────────
@@ -472,9 +482,33 @@ function createSpeechBubble(text: string, speakerName: string, role: 'dm' | 'use
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 const IsometricWorld = function IsometricWorld(
-  { players = [], theme, onSquareClick, chatBubble, showDMToken = false, onTokenPositions }: IsometricWorldProps,
+  { players = [], theme, onSquareClick, chatBubble, showDMToken = false, onTokenPositions, onCameraControls }: IsometricWorldProps,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Camera zoom animation state
+  const cameraZoomRef = useRef<{
+    active: boolean;
+    progress: number;
+    startPos: THREE.Vector3;
+    startTarget: THREE.Vector3;
+    endPos: THREE.Vector3;
+    endTarget: THREE.Vector3;
+    defaultPos: THREE.Vector3;
+    defaultTarget: THREE.Vector3;
+    zooming: 'in' | 'out' | null;
+  }>({
+    active: false,
+    progress: 0,
+    startPos: new THREE.Vector3(),
+    startTarget: new THREE.Vector3(),
+    endPos: new THREE.Vector3(),
+    endTarget: new THREE.Vector3(),
+    defaultPos: new THREE.Vector3(WORLD_SIZE * 0.8, WORLD_SIZE * 0.6, WORLD_SIZE * 0.8),
+    defaultTarget: new THREE.Vector3(WORLD_SIZE / 2, 0, WORLD_SIZE / 2),
+    zooming: null,
+  });
+
   const sceneRef = useRef<{
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
@@ -679,12 +713,73 @@ const IsometricWorld = function IsometricWorld(
     const particles = new THREE.Points(particleGeo, particleMat);
     scene.add(particles);
 
+    // Expose camera controls to parent
+    if (onCameraControls) {
+      onCameraControls({
+        zoomToPlayer: (playerId: string) => {
+          if (!sceneRef.current) return;
+          const { playerGroup, dmGroup, camera, controls: ctrl } = sceneRef.current;
+          const token = playerGroup.children.find(c => c.userData.playerId === playerId)
+            || dmGroup.children.find(c => c.userData.playerId === playerId);
+          if (!token) return;
+
+          // Target: look at the ground spot in front of the player
+          const targetLook = new THREE.Vector3(token.position.x, 0, token.position.z);
+          // Camera: position close, slightly above and in front
+          const offset = new THREE.Vector3(1.5, 3, 3);
+          const targetCam = new THREE.Vector3().copy(targetLook).add(offset);
+
+          const z = cameraZoomRef.current;
+          z.startPos.copy(camera.position);
+          z.startTarget.copy(ctrl.target);
+          z.endPos.copy(targetCam);
+          z.endTarget.copy(targetLook);
+          z.progress = 0;
+          z.zooming = 'in';
+          z.active = true;
+          ctrl.enabled = false;
+        },
+        zoomBack: () => {
+          if (!sceneRef.current) return;
+          const { camera, controls: ctrl } = sceneRef.current;
+          const z = cameraZoomRef.current;
+          z.startPos.copy(camera.position);
+          z.startTarget.copy(ctrl.target);
+          z.endPos.copy(z.defaultPos);
+          z.endTarget.copy(z.defaultTarget);
+          z.progress = 0;
+          z.zooming = 'out';
+          z.active = true;
+        },
+      });
+    }
+
     // Animation loop
     let time = 0;
     const animate = () => {
       const id = requestAnimationFrame(animate);
       sceneRef.current!.animationId = id;
       time += 0.01;
+
+      // Smooth camera zoom animation
+      const z = cameraZoomRef.current;
+      if (z.active) {
+        z.progress = Math.min(1, z.progress + 0.018);
+        // Ease in-out cubic
+        const t = z.progress < 0.5
+          ? 4 * z.progress * z.progress * z.progress
+          : 1 - Math.pow(-2 * z.progress + 2, 3) / 2;
+        camera.position.lerpVectors(z.startPos, z.endPos, t);
+        controls.target.lerpVectors(z.startTarget, z.endTarget, t);
+        controls.update();
+        if (z.progress >= 1) {
+          z.active = false;
+          if (z.zooming === 'out') {
+            controls.enabled = true;
+          }
+          z.zooming = null;
+        }
+      }
 
       controls.update();
 
