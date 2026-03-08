@@ -1,0 +1,133 @@
+{
+  "name": "cortify-ai",
+  "version": "1.0.0",
+  "description": "Cortify-style debate overlay with expandable analysis windows",
+  "main": "electron/main/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "verify-security": "node scripts/verify-build-security.js",
+    "build:win": "npm run build && npm run verify-security && electron-builder --win --x64",
+    "start": "next start",
+    "electron": "electron .",
+    "pack": "electron-builder",
+    "dist": "npm run build && electron-builder",
+    "clean": "npx rimraf .next",
+    "rebuild": "npm run clean && npm run build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:tutorials": "playwright test tests/e2e/tutorials"
+  },
+  "build": {
+    "appId": "com.cortify.ai",
+    "productName": "Cortify AI",
+    "protocols": [
+      {
+        "name": "cortify",
+        "schemes": [
+          "cortify"
+        ],
+        "role": "Viewer"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "out/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/.env.local",
+      "!**/.env.development",
+      "!**/.env.production"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico"
+    },
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Cortify AI",
+      "perMachine": true,
+      "include": "installer.nsh"
+    }
+  },
+  "dependencies": {
+    "@deepgram/sdk": "^4.11.2",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@electron/remote": "^2.1.3",
+    "@google/generative-ai": "^0.24.1",
+    "@tiptap/extension-color": "^2.27.2",
+    "@tiptap/extension-highlight": "^2.27.2",
+    "@tiptap/extension-link": "^2.27.2",
+    "@tiptap/extension-placeholder": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
+    "@types/jspdf": "^2.0.0",
+    "@types/recharts": "^2.0.1",
+    "@types/three": "^0.183.1",
+    "dotenv": "^17.2.2",
+    "electron-serve": "^3.0.0",
+    "electron-store": "^7.0.3",
+    "framer-motion": "^10.16.0",
+    "groq-sdk": "^0.5.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.0.0",
+    "lucide-react": "^0.290.0",
+    "mermaid": "^11.12.2",
+    "next": "^14.0.0",
+    "node-fetch": "^3.3.2",
+    "orderedmap": "^2.1.1",
+    "phaser": "^3.90.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^9.1.0",
+    "recharts": "^3.6.0",
+    "recorder-js": "^1.0.7",
+    "remark-gfm": "^4.0.1",
+    "simple-peer": "^9.11.1",
+    "socket.io-client": "^4.8.1",
+    "three": "^0.183.2",
+    "tldraw": "^2.4.6",
+    "web-audio-api": "^0.2.2",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^20.0.0",
+    "@types/plist": "^3.0.5",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/simple-peer": "^9.11.8",
+    "@types/verror": "^1.10.11",
+    "autoprefixer": "^10.4.0",
+    "concurrently": "^8.0.0",
+    "electron": "^26.6.10",
+    "electron-builder": "^24.0.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.0.0",
+    "wait-on": "^7.0.0"
+  }
+}

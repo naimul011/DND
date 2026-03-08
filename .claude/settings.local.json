@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(dir \"E:\\\\Entreprenuer\\\\discourse_FE\\\\frontend\\\\src\\\\utils\")",
+      "Bash(dir:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npx next build:*)",
+      "Bash(powershell -Command \"cd E:\\\\Entreprenuer\\\\discourse_FE\\\\frontend; if \\(Test-Path .next\\) { Remove-Item -Recurse -Force .next }; npm run build\")",
+      "Bash(git stash push:*)",
+      "Bash(git rebase:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(cd:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(git push:*)",
+      "Bash(tree:*)"
+    ]
+  }
+}

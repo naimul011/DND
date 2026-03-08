@@ -1,0 +1,354 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+    Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background: #0f0a1a;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  user-select: text;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#__next {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ─── Custom Scrollbar ──────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.03);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.35);
+}
+
+/* ─── Pulse animation ───────────────────────────────────────────────────────── */
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── Message appear animation ──────────────────────────────────────────────── */
+
+@keyframes msgAppear {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.msg-appear {
+  animation: msgAppear 0.35s ease-out;
+}
+
+/* ─── DM typing cursor ─────────────────────────────────────────────────────── */
+
+.dm-cursor {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  margin-left: 4px;
+  vertical-align: middle;
+  background: rgba(192, 132, 252, 0.8);
+  border-radius: 2px;
+  animation: cursorBlink 0.8s ease-in-out infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+/* ─── DM Typing Dots ───────────────────────────────────────────────────────── */
+
+.dm-typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.dm-typing-dots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.6);
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+
+.dm-typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dm-typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ─── Dice Animations ──────────────────────────────────────────────────────── */
+
+.dice-btn {
+  transition: all 0.2s ease;
+}
+
+.dice-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2) !important;
+}
+
+.dice-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.95);
+}
+
+.dice-rolling {
+  animation: diceShake 0.15s ease-in-out infinite;
+}
+
+@keyframes diceShake {
+  0%   { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(-12deg) scale(1.1); }
+  50%  { transform: rotate(8deg) scale(1.05); }
+  75%  { transform: rotate(-5deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+@keyframes dicePulse {
+  0%   { opacity: 0.3; }
+  100% { opacity: 0.8; }
+}
+
+.dice-number-spin {
+  animation: numberSpin 0.12s ease-in-out infinite;
+}
+
+@keyframes numberSpin {
+  0%   { opacity: 0.3; transform: scale(0.8) rotate(-5deg); }
+  50%  { opacity: 1;   transform: scale(1.1) rotate(3deg); }
+  100% { opacity: 0.3; transform: scale(0.8) rotate(-5deg); }
+}
+
+.dice-result-appear {
+  animation: resultPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes resultPop {
+  0%   { opacity: 0; transform: scale(0.3); }
+  60%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.nat-banner {
+  animation: bannerSlide 0.3s ease-out;
+}
+
+@keyframes bannerSlide {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-100%); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── Blink animation ──────────────────────────────────────────────────────── */
+
+@keyframes blink {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0.3; }
+}
+
+/* ─── Slide animations ─────────────────────────────────────────────────────── */
+
+@keyframes slideDown {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  0%   { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ─── Ambient glow for the sidebar ──────────────────────────────────────────── */
+
+@keyframes ambientGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* ─── Hover effects for interactive elements ────────────────────────────────── */
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Game background texture ───────────────────────────────────────────────── */
+
+.game-bg {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(99, 60, 200, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 50%),
+    #0f0a1a;
+}
+
+/* ─── Glassmorphism overlay panels (for 3D world UI) ────────────────────────── */
+
+.glass-panel {
+  background: rgba(10, 8, 20, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.glass-panel-light {
+  background: rgba(10, 8, 20, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ─── Collapsible panel transitions ─────────────────────────────────────────── */
+
+.collapsible-enter {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.collapsible-enter-active {
+  max-height: 2000px;
+  opacity: 1;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.collapsible-exit {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.collapsible-exit-active {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+/* ─── Sidebar slide animation ───────────────────────────────────────────────── */
+
+@keyframes sidebarSlideIn {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes sidebarSlideOut {
+  0% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(-100%); opacity: 0; }
+}
+
+/* ─── World overlay button glow ─────────────────────────────────────────────── */
+
+.world-toggle-btn {
+  transition: all 0.3s ease;
+}
+
+.world-toggle-btn:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+  transform: scale(1.05);
+}
+
+/* ─── Transcript animations (for voice STT) ─────────────────────────────────── */
+
+.transcript-word {
+  position: relative;
+  padding: 0 2px;
+}
+
+.transcript-active {
+  color: #f5d0fe;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 4px;
+  animation: transcriptPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes transcriptPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  70%  { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+/* ─── Score toast animation ─────────────────────────────────────────────────── */
+
+.score-toast {
+  animation: scoreToast 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scoreToast {
+  0%   { opacity: 0; transform: translateY(-20px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Select styling ────────────────────────────────────────────────────────── */
+
+select option {
+  background: #1a1030;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── Input focus rings ─────────────────────────────────────────────────────── */
+
+textarea:focus,
+input:focus,
+select:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
+}
+
+/* ─── Button hover glow ─────────────────────────────────────────────────────── */
+
+button {
+  transition: all 0.15s ease;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}

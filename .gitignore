@@ -1,0 +1,147 @@
+# ===== GLOBAL IGNORES =====
+
+# Node modules (frontend & backend)
+node_modules/
+*/node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Package manager lockfiles (keep package-lock.json for CI/CD)
+# package-lock.json  # Commented out - needed for npm ci in deployments
+yarn.lock
+pnpm-lock.yaml
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# ===== FRONTEND SPECIFIC =====
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/dist2/
+frontend/dist3/
+
+# Electron build output
+frontend/electron/dist/
+frontend/electron-builder-output/
+
+# TypeScript cache
+*.tsbuildinfo
+frontend/*.tsbuildinfo
+
+# ===== BACKEND SPECIFIC =====
+
+# Backend build output
+backend/dist/
+backend/build/
+
+# ===== ENVIRONMENT & CONFIG =====
+
+# Environment variables
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/.env
+backend/.env.*
+
+# ===== IDE & EDITORS =====
+
+# VSCode settings
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# ===== SYSTEM FILES =====
+
+# Mac system files
+.DS_Store
+*.DS_Store
+
+# Windows system files
+Thumbs.db
+*.Thumbs.db
+ehthumbs.db
+
+# Linux system files
+*~
+
+# ===== DEVELOPMENT =====
+
+# Coverage directory
+coverage/
+.nyc_output/
+
+# Testing
+.coverage
+htmlcov/
+
+# Cache directories
+.npm
+.eslintcache
+.cache/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# ===== PRODUCTION =====
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Compressed files
+*.tgz
+*.tar.gz
+*.zip
+
+# ===== MISC =====
+
+# Debug files
+debug.log
+*.debug
+.qodo/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ===== LOCAL RESEARCH & DOCS =====
+# Research documents (keep local, don't commit)
+*_RESEARCH.md
+*_PLAN.md
+*IMPLEMENTATION*.md
+!README.md
+!DESIGN_GUIDE.md
+!frontend/README.md
+!frontend/BUILD_GUIDE.md
+!frontend/DISTRIBUTION_GUIDE.md
+!backend/README.md
+!frontend/public/sounds/README.md
+
+# Temporary/working images at root
+/*.png
+/*.jpg
+/*.jpeg
+/*.pdf
+
+# Log files at root
+/*.txt
