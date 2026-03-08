@@ -11,6 +11,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ function createDMToken(x: number, z: number): THREE.Group {
   const dmColor = new THREE.Color(0x7c3aed);
 
   // Base platform (glowing magical circle)
-  const discGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.04, 16);
+  const discGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.04, 32);
   const discMat = new THREE.MeshStandardMaterial({
     color: dmColor,
     emissive: dmColor,
@@ -185,77 +186,165 @@ function createDMToken(x: number, z: number): THREE.Group {
   disc.position.y = 0.02;
   group.add(disc);
 
-  // Robe body (wider, flowing)
-  const robeGeo = new THREE.CylinderGeometry(0.08, 0.25, 0.6, 8);
-  const robeMat = new THREE.MeshStandardMaterial({ color: 0x2d1b69, flatShading: true });
-  const robe = new THREE.Mesh(robeGeo, robeMat);
-  robe.position.y = 0.3;
-  group.add(robe);
-
-  // Hood/head
-  const hoodGeo = new THREE.SphereGeometry(0.14, 8, 6);
-  const hoodMat = new THREE.MeshStandardMaterial({ color: 0x1a0e3e, flatShading: true });
-  const hood = new THREE.Mesh(hoodGeo, hoodMat);
-  hood.position.y = 0.65;
-  group.add(hood);
-
-  // Eyes (glowing dots)
-  const eyeGeo = new THREE.SphereGeometry(0.025, 6, 4);
-  const eyeMat = new THREE.MeshStandardMaterial({
+  // Outer arcane ring
+  const ringGeo = new THREE.TorusGeometry(0.48, 0.018, 8, 48);
+  const ringMat = new THREE.MeshStandardMaterial({
     color: 0xc084fc,
     emissive: 0xc084fc,
-    emissiveIntensity: 2,
-  });
-  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-  leftEye.position.set(-0.04, 0.66, 0.12);
-  group.add(leftEye);
-  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-  rightEye.position.set(0.04, 0.66, 0.12);
-  group.add(rightEye);
-
-  // Wizard hat
-  const hatGeo = new THREE.ConeGeometry(0.16, 0.35, 6);
-  const hatMat = new THREE.MeshStandardMaterial({ color: 0x2d1b69, flatShading: true });
-  const hat = new THREE.Mesh(hatGeo, hatMat);
-  hat.position.y = 0.9;
-  group.add(hat);
-
-  // Hat brim
-  const brimGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.03, 8);
-  const brimMat = new THREE.MeshStandardMaterial({ color: 0x3b2080, flatShading: true });
-  const brim = new THREE.Mesh(brimGeo, brimMat);
-  brim.position.y = 0.75;
-  group.add(brim);
-
-  // Staff
-  const staffGeo = new THREE.CylinderGeometry(0.015, 0.02, 0.9, 6);
-  const staffMat = new THREE.MeshStandardMaterial({ color: 0x5c3a1e, flatShading: true });
-  const staff = new THREE.Mesh(staffGeo, staffMat);
-  staff.position.set(0.2, 0.45, 0);
-  staff.rotation.z = -0.15;
-  group.add(staff);
-
-  // Staff orb
-  const orbGeo = new THREE.SphereGeometry(0.06, 8, 6);
-  const orbMat = new THREE.MeshStandardMaterial({
-    color: 0xc084fc,
-    emissive: 0xc084fc,
-    emissiveIntensity: 1.5,
+    emissiveIntensity: 1.2,
     transparent: true,
     opacity: 0.9,
   });
-  const orb = new THREE.Mesh(orbGeo, orbMat);
-  orb.position.set(0.23, 0.92, 0);
-  group.add(orb);
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.05;
+  group.add(ring);
+
+  // Inner arcane ring (second decorative ring)
+  const innerRingGeo = new THREE.TorusGeometry(0.32, 0.012, 8, 48);
+  const innerRingMat = new THREE.MeshStandardMaterial({
+    color: 0xe9b8ff,
+    emissive: 0xe9b8ff,
+    emissiveIntensity: 0.8,
+    transparent: true,
+    opacity: 0.7,
+  });
+  const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+  innerRing.rotation.x = -Math.PI / 2;
+  innerRing.position.y = 0.05;
+  group.add(innerRing);
+
+  // Rune particles around the base (small glowing spheres)
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const runeGeo = new THREE.SphereGeometry(0.025, 6, 4);
+    const runeMat = new THREE.MeshStandardMaterial({
+      color: 0xd8a0ff,
+      emissive: 0xd8a0ff,
+      emissiveIntensity: 2.0,
+    });
+    const rune = new THREE.Mesh(runeGeo, runeMat);
+    rune.position.set(Math.cos(angle) * 0.4, 0.08, Math.sin(angle) * 0.4);
+    group.add(rune);
+  }
+
+  // Dramatic point light from below the model
+  const dmLight = new THREE.PointLight(0xc084fc, 2.0, 4);
+  dmLight.position.set(0, 0.5, 0);
+  group.add(dmLight);
+
+  // Load STL model — Female Tiefling Paladin as DM avatar
+  const loader = new STLLoader();
+  loader.load('/assets/characters/46__Female_Tiefling_Paladin.stl', (geometry) => {
+    geometry.computeVertexNormals();
+
+    // Rotate geometry to stand upright — STL is lying face-down by default
+    geometry.rotateX(-Math.PI / 2);
+
+    // Center and scale the geometry
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox!;
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+    // Center X/Z but keep feet on the ground
+    geometry.translate(-center.x, -bbox.min.y, -center.z);
+
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetHeight = 1.1;
+    const scaleFactor = targetHeight / maxDim;
+    geometry.scale(scaleFactor, scaleFactor, scaleFactor);
+
+    // Warm bronze/antique gold material — like a painted miniature
+    const material = new THREE.MeshPhysicalMaterial({
+      color: 0xb87333,          // warm bronze
+      metalness: 0.7,
+      roughness: 0.28,
+      emissive: 0x3d2200,       // subtle warm glow
+      emissiveIntensity: 0.15,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.2,
+      reflectivity: 0.8,
+      sheen: 0.6,
+      sheenColor: new THREE.Color(0xffd700),  // gold sheen
+      sheenRoughness: 0.35,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.position.y = 0.04;
+    group.add(mesh);
+  });
+
+  // ─── Decorative Lamp next to the DM ───
+  const lampGroup = new THREE.Group();
+
+  // Lamp post (dark iron pole)
+  const poleGeo = new THREE.CylinderGeometry(0.02, 0.025, 0.7, 8);
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.9, roughness: 0.4 });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = 0.35;
+  lampGroup.add(pole);
+
+  // Lamp hook / arm (small horizontal bar)
+  const armGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.15, 6);
+  const arm = new THREE.Mesh(armGeo, poleMat);
+  arm.rotation.z = Math.PI / 2;
+  arm.position.set(0.07, 0.68, 0);
+  lampGroup.add(arm);
+
+  // Lamp cage (wireframe icosahedron for lantern body)
+  const cageGeo = new THREE.IcosahedronGeometry(0.07, 0);
+  const cageMat = new THREE.MeshStandardMaterial({
+    color: 0x3a3a3a,
+    metalness: 0.8,
+    roughness: 0.3,
+    wireframe: true,
+  });
+  const cage = new THREE.Mesh(cageGeo, cageMat);
+  cage.position.set(0.14, 0.64, 0);
+  lampGroup.add(cage);
+
+  // Flame glow (inner glowing sphere)
+  const flameGeo = new THREE.SphereGeometry(0.04, 8, 6);
+  const flameMat = new THREE.MeshStandardMaterial({
+    color: 0xffaa33,
+    emissive: 0xff8800,
+    emissiveIntensity: 3.0,
+    transparent: true,
+    opacity: 0.9,
+  });
+  const flame = new THREE.Mesh(flameGeo, flameMat);
+  flame.position.set(0.14, 0.64, 0);
+  lampGroup.add(flame);
+
+  // Actual point light from the lamp
+  const lampLight = new THREE.PointLight(0xff9944, 1.8, 5);
+  lampLight.position.set(0.14, 0.66, 0);
+  lampGroup.add(lampLight);
+
+  // Lamp base (small disc on the ground)
+  const lampBaseGeo = new THREE.CylinderGeometry(0.06, 0.07, 0.03, 8);
+  const lampBase = new THREE.Mesh(lampBaseGeo, poleMat);
+  lampBase.position.y = 0.015;
+  lampGroup.add(lampBase);
+
+  lampGroup.position.set(0.55, 0, 0.15);  // Offset to the right of the DM
+  group.add(lampGroup);
 
   // Floating name label
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = 'rgba(45, 27, 105, 0.8)';
+  ctx.fillStyle = 'rgba(45, 27, 105, 0.85)';
+  ctx.strokeStyle = 'rgba(192, 132, 252, 0.6)';
+  ctx.lineWidth = 2;
   ctx.roundRect(0, 8, 256, 48, 8);
   ctx.fill();
+  ctx.stroke();
   ctx.font = 'bold 24px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#c084fc';
@@ -264,7 +353,7 @@ function createDMToken(x: number, z: number): THREE.Group {
   const texture = new THREE.CanvasTexture(canvas);
   const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
   const sprite = new THREE.Sprite(spriteMat);
-  sprite.position.set(0, 1.2, 0);
+  sprite.position.set(0, 1.5, 0);
   sprite.scale.set(1.2, 0.3, 1);
   group.add(sprite);
 
@@ -567,6 +656,14 @@ const IsometricWorld = function IsometricWorld(
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(FOG_COLOR, 0.04);
 
+    // Generate an environment map for metallic/reflective materials
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    scene.environment = pmremGenerator.fromScene(
+      new THREE.Scene(), 0, 0.1, 100
+    ).texture;
+    pmremGenerator.dispose();
+
     // Camera (isometric-ish perspective)
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -816,9 +913,41 @@ const IsometricWorld = function IsometricWorld(
         child.position.y = Math.sin(time * 3 + idx) * 0.03;
       });
 
-      // Bob DM token
+      // Animate DM token — bob + rotate arcane rings + pulse runes + flicker lamp
       dmGroup.children.forEach((child) => {
         child.position.y = Math.sin(time * 2) * 0.04;
+        // Animate child meshes within the DM token group
+        child.children?.forEach((part: THREE.Object3D) => {
+          // Rotate torus rings (outer and inner arcane rings)
+          if ((part as THREE.Mesh).geometry instanceof THREE.TorusGeometry) {
+            part.rotation.z += 0.005;
+          }
+          // Pulse the small rune spheres (identified by their small y position near the base)
+          if ((part as THREE.Mesh).geometry instanceof THREE.SphereGeometry
+            && part.position.y < 0.15 && part.position.y > 0) {
+            const scale = 0.8 + Math.sin(time * 4 + part.position.x * 10) * 0.3;
+            part.scale.setScalar(scale);
+          }
+          // Pulse the DM point light
+          if (part instanceof THREE.PointLight) {
+            part.intensity = 1.5 + Math.sin(time * 3) * 0.5;
+          }
+          // Animate lamp group children (flicker lamp light & animate flame)
+          if (part instanceof THREE.Group) {
+            part.children?.forEach((lampPart: THREE.Object3D) => {
+              // Flicker the lamp point light
+              if (lampPart instanceof THREE.PointLight) {
+                lampPart.intensity = 1.4 + Math.sin(time * 8) * 0.4 + Math.sin(time * 13) * 0.2;
+              }
+              // Wobble the flame sphere
+              if ((lampPart as THREE.Mesh).material
+                && ((lampPart as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity === 3.0) {
+                const flScale = 0.85 + Math.sin(time * 10) * 0.15;
+                lampPart.scale.set(flScale, 0.8 + Math.sin(time * 7) * 0.25, flScale);
+              }
+            });
+          }
+        });
       });
 
       // Bob chat bubble with the player token it's attached to

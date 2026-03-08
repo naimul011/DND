@@ -17,6 +17,7 @@ import dynamic from 'next/dynamic';
 import useDnDGame from '../src/hooks/useDnDGame';
 import useDnDVoice from '../src/hooks/useDnDVoice';
 import {
+  GameMainMenu,
   PartySetupScreen,
   CharacterCreator,
   MessageBubble,
@@ -74,6 +75,9 @@ export default function DnDPage() {
     onDMResponse: voice.speakDMResponse,
     onStopSpeaking: voice.stopSpeaking,
   });
+
+  // Menu state — show animated menu before setup
+  const [showMainMenu, setShowMainMenu] = useState(true);
 
   // Sidebar toggle
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -162,6 +166,27 @@ export default function DnDPage() {
     return tokenPositions.find(t => t.id === id);
   }, [tokenPositions]);
 
+  // ─── Main Menu Screen ────────────────────────────────────────────────────
+
+  if (showMainMenu && game.session.party.length === 0) {
+    return (
+      <>
+        <Head><title>D&amp;D - AI Dungeon Master</title></Head>
+        <IsometricWorld players={[]} />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(6px)',
+        }}>
+          <GameMainMenu
+            onStartGame={() => setShowMainMenu(false)}
+          />
+        </div>
+      </>
+    );
+  }
+
   // ─── Party Setup Screen ──────────────────────────────────────────────────
 
   if (game.session.party.length === 0) {
@@ -186,7 +211,15 @@ export default function DnDPage() {
             overflowY: 'auto',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.1)',
           }}>
-            <PartySetupScreen onComplete={game.handlePartySetupComplete} />
+            <PartySetupScreen
+              onComplete={game.handlePartySetupComplete}
+              voiceEnabled={voice.voiceEnabled}
+              dmVoice={voice.dmVoice}
+              voiceSettings={voice.voiceSettings}
+              onToggleVoice={voice.toggleVoiceEnabled}
+              onVoiceChange={voice.setDmVoice}
+              onVoiceSettingsChange={voice.updateVoiceSettings}
+            />
           </div>
         </div>
 

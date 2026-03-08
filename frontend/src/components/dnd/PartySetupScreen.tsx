@@ -1,14 +1,17 @@
 /**
  * PartySetupScreen - Pre-game screen for campaign configuration and party creation.
  *
- * Two-phase flow:
- *   1. Campaign settings (theme, town, story hook)
- *   2. Party creation (add/remove characters using CharacterCreator)
+ * Three-phase flow:
+ *   1. Campaign settings (theme, town, story hook) — using dropdowns
+ *   2. Narrator/DM voice settings
+ *   3. Party creation (add/remove characters using CharacterCreator)
  *
  * On "Begin Adventure", fires `onComplete(party, campaignSetting)`.
+ * Uses Framer Motion for smooth game-style animations.
  */
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   DnDCharacter,
   CampaignSetting,
@@ -16,20 +19,59 @@ import {
   CAMPAIGN_TOWNS,
   STORY_HOOKS,
 } from '../../services/dndService';
+import { DMVoice, VoiceSettings, DEFAULT_VOICE_SETTINGS } from '../../services/dndVoiceService';
 import CharacterCreator from './CharacterCreator';
+import NarratorVoiceSetup from './NarratorVoiceSetup';
 
 interface PartySetupScreenProps {
   onComplete: (party: DnDCharacter[], campaignSetting: CampaignSetting) => void;
+  /** Voice state passed in from parent so it persists */
+  voiceEnabled?: boolean;
+  dmVoice?: DMVoice;
+  voiceSettings?: VoiceSettings;
+  onToggleVoice?: () => void;
+  onVoiceChange?: (voice: DMVoice) => void;
+  onVoiceSettingsChange?: (settings: Partial<VoiceSettings>) => void;
 }
 
-export default function PartySetupScreen({ onComplete }: PartySetupScreenProps) {
+type SetupStep = 'campaign' | 'voice' | 'party';
+
+const pageVariants = {
+  initial: { opacity: 0, x: 60 },
+  animate: { opacity: 1, x: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+  exit: { opacity: 0, x: -60, transition: { duration: 0.25 } },
+};
+
+const PLAYER_COLORS = ['#f59e0b', '#60a5fa', '#34d399', '#f472b6', '#a78bfa', '#f97316'];
+
+export default function PartySetupScreen({
+  onComplete,
+  voiceEnabled = true,
+  dmVoice = 'aura-orion-en',
+  voiceSettings = { ...DEFAULT_VOICE_SETTINGS },
+  onToggleVoice,
+  onVoiceChange,
+  onVoiceSettingsChange,
+}: PartySetupScreenProps) {
   const [party, setParty] = useState<DnDCharacter[]>([]);
   const [showCreator, setShowCreator] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  const [setupStep, setSetupStep] = useState<'campaign' | 'party'>('campaign');
+  const [setupStep, setSetupStep] = useState<SetupStep>('campaign');
   const [selectedTheme, setSelectedTheme] = useState(CAMPAIGN_THEMES[0].id);
   const [selectedTown, setSelectedTown] = useState(CAMPAIGN_TOWNS[0].id);
   const [selectedHook, setSelectedHook] = useState(STORY_HOOKS[0].id);
+
+  // Local voice state fallbacks (when parent doesn't provide controls)
+  const [localVoiceEnabled, setLocalVoiceEnabled] = useState(voiceEnabled);
+  const [localDmVoice, setLocalDmVoice] = useState<DMVoice>(dmVoice);
+  const [localVoiceSettings, setLocalVoiceSettings] = useState<VoiceSettings>({ ...voiceSettings });
+
+  const toggleVoice = onToggleVoice || (() => setLocalVoiceEnabled(v => !v));
+  const changeVoice = onVoiceChange || ((v: DMVoice) => setLocalDmVoice(v));
+  const changeSettings = onVoiceSettingsChange || ((s: Partial<VoiceSettings>) => setLocalVoiceSettings(prev => ({ ...prev, ...s })));
+  const isVoiceEnabled = onToggleVoice ? voiceEnabled : localVoiceEnabled;
+  const currentDmVoice = onVoiceChange ? dmVoice : localDmVoice;
+  const currentVoiceSettings = onVoiceSettingsChange ? voiceSettings : localVoiceSettings;
 
   const handleCharacterCreated = (character: DnDCharacter) => {
     setParty(prev => [...prev, character]);
@@ -51,214 +93,299 @@ export default function PartySetupScreen({ onComplete }: PartySetupScreenProps) 
     setTimeout(() => onComplete(party, setting), 300);
   };
 
-  const optionButtonStyle = (isSelected: boolean): React.CSSProperties => ({
-    padding: '10px 14px',
-    background: isSelected ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255,255,255,0.04)',
-    border: `2px solid ${isSelected ? 'rgba(139, 92, 246, 0.7)' : 'rgba(255,255,255,0.08)'}`,
-    borderRadius: '10px',
-    color: isSelected ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.7)',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'all 0.2s',
-  });
+  // Step indicators
+  const steps: { key: SetupStep; label: string; icon: string }[] = [
+    { key: 'campaign', label: 'Campaign', icon: '⚔️' },
+    { key: 'voice', label: 'Narrator', icon: '🎙️' },
+    { key: 'party', label: 'Party', icon: '🛡️' },
+  ];
 
-  // ─── Campaign Step ─────────────────────────────────────────────
-
-  const renderCampaignStep = () => {
-    const OPTION_GROUPS = [
-      { label: 'Campaign Theme', items: CAMPAIGN_THEMES, selected: selectedTheme, onSelect: setSelectedTheme },
-      { label: 'Starting Town', items: CAMPAIGN_TOWNS, selected: selectedTown, onSelect: setSelectedTown },
-      { label: 'Story Hook', items: STORY_HOOKS, selected: selectedHook, onSelect: setSelectedHook },
-    ];
-
-    return (
-      <div style={{
-        padding: '24px', background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', marginBottom: '16px',
-      }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'rgba(255,255,255,0.9)' }}>
-          ⚔️ Choose Your Campaign
-        </h2>
-
-        {OPTION_GROUPS.map(group => (
-          <div key={group.label} style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '12px',
-              marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
-            }}>
-              {group.label}
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
-              {group.items.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => group.onSelect(item.id)}
-                  style={optionButtonStyle(group.selected === item.id)}
-                >
-                  <div style={{ fontSize: '14px', fontWeight: 600 }}>{item.label}</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{item.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        <button
-          onClick={() => setSetupStep('party')}
-          style={{
-            width: '100%', padding: '14px', background: 'rgba(139, 92, 246, 0.6)',
-            border: 'none', borderRadius: '10px', color: 'white',
-            fontSize: '16px', fontWeight: 600, cursor: 'pointer',
-          }}
-        >
-          Next: Create Your Party →
-        </button>
-      </div>
-    );
-  };
-
-  // ─── Party Step ────────────────────────────────────────────────
-
-  const renderPartyStep = () => (
-    <>
-      {/* Campaign summary chips */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', justifyContent: 'center' }}>
-        {[
-          CAMPAIGN_THEMES.find(t => t.id === selectedTheme)?.label,
-          CAMPAIGN_TOWNS.find(t => t.id === selectedTown)?.label,
-          STORY_HOOKS.find(h => h.id === selectedHook)?.label,
-        ].map((label, i) => (
-          <span key={i} style={{
-            padding: '4px 12px', background: 'rgba(139, 92, 246, 0.15)',
-            border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: '20px',
-            fontSize: '12px', color: 'rgba(192, 132, 252, 0.9)',
-          }}>
-            {label}
-          </span>
-        ))}
-        <button
-          onClick={() => setSetupStep('campaign')}
-          style={{
-            padding: '4px 10px', background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px',
-            fontSize: '11px', color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
-          }}
-        >
-          ✎ Change
-        </button>
-      </div>
-
-      <div style={{
-        padding: '24px', background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', marginBottom: '16px',
-      }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: 'rgba(255,255,255,0.9)' }}>
-          Select Your Party ({party.length} created)
-        </h2>
-
-        {party.length === 0 ? (
-          <div style={{
-            padding: '32px 16px', textAlign: 'center',
-            background: 'rgba(255,255,255,0.03)', borderRadius: '12px',
-            border: '1px dashed rgba(255,255,255,0.1)',
-          }}>
-            <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '16px' }}>
-              No characters yet. Create your first party member!
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-            {party.map(member => (
-              <div key={member.id} style={{
-                padding: '12px', background: 'rgba(139, 92, 246, 0.08)',
-                border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '12px', position: 'relative',
-              }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', marginBottom: '4px' }}>
-                  {member.name}
-                </div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
-                  {member.race} {member.class}
-                </div>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', marginBottom: '8px', lineHeight: 1.4 }}>
-                  HP {member.hp}/{member.maxHp} • AC {member.ac}
-                </div>
-                <button
-                  onClick={() => removeCharacter(member.id)}
-                  style={{
-                    position: 'absolute', top: '8px', right: '8px',
-                    width: '24px', height: '24px', borderRadius: '50%',
-                    background: 'rgba(255, 100, 100, 0.2)', border: 'none',
-                    color: 'rgba(255, 100, 100, 0.8)', cursor: 'pointer',
-                    fontSize: '12px', fontWeight: 700, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!showCreator ? (
-          <button
-            onClick={() => setShowCreator(true)}
-            style={{
-              width: '100%', padding: '12px', background: 'rgba(139, 92, 246, 0.15)',
-              border: '1px dashed rgba(139, 92, 246, 0.5)', borderRadius: '10px',
-              color: 'rgba(192, 132, 252, 0.9)', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            + Create Character
-          </button>
-        ) : (
-          <div style={{
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px', padding: '16px', marginTop: '-8px',
-          }}>
-            <CharacterCreator onComplete={handleCharacterCreated} />
-          </div>
-        )}
-      </div>
-
-      <button
-        onClick={startGame}
-        disabled={party.length === 0 || hasStarted}
-        style={{
-          width: '100%', padding: '14px',
-          background: party.length > 0 && !hasStarted ? 'rgba(139, 92, 246, 0.6)' : 'rgba(255,255,255,0.05)',
-          border: 'none', borderRadius: '10px',
-          color: party.length > 0 && !hasStarted ? 'white' : 'rgba(255,255,255,0.3)',
-          fontSize: '16px', fontWeight: 600,
-          cursor: party.length > 0 && !hasStarted ? 'pointer' : 'default',
-          transition: 'all 0.3s', opacity: hasStarted ? 0.5 : 1,
-        }}
-      >
-        {hasStarted ? 'Loading Adventure...' : `Begin Adventure with ${party.length === 1 ? '1 Hero' : `${party.length} Heroes`}`}
-      </button>
-    </>
-  );
-
-  // ─── Render ────────────────────────────────────────────────────
+  const stepIndex = steps.findIndex(s => s.key === setupStep);
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', background: '#1C1C1E', padding: '24px',
-    }}>
-      <div style={{ maxWidth: '700px', width: '100%' }}>
-        <h1 style={{
-          fontSize: '32px', fontWeight: 700, textAlign: 'center', marginBottom: '8px',
-          background: 'linear-gradient(135deg, #c084fc, #818cf8)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-        }}>
+    <div className="party-setup-root">
+      {/* Title + Step Indicator */}
+      <div className="party-setup-header">
+        <motion.h1
+          className="party-setup-title"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           Dungeons &amp; Dragons
-        </h1>
-        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '14px', marginBottom: '32px' }}>
+        </motion.h1>
+        <motion.p
+          className="party-setup-subtitle"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
           AI Dungeon Master
-        </p>
+        </motion.p>
 
-        {setupStep === 'campaign' ? renderCampaignStep() : renderPartyStep()}
+        {/* Progress Steps */}
+        <motion.div
+          className="party-setup-steps"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {steps.map((step, i) => (
+            <React.Fragment key={step.key}>
+              <button
+                className={`party-step ${i <= stepIndex ? 'active' : ''} ${step.key === setupStep ? 'current' : ''}`}
+                onClick={() => {
+                  if (i < stepIndex) setSetupStep(step.key);
+                }}
+              >
+                <span className="party-step-icon">{step.icon}</span>
+                <span className="party-step-label">{step.label}</span>
+              </button>
+              {i < steps.length - 1 && (
+                <div className={`party-step-line ${i < stepIndex ? 'filled' : ''}`} />
+              )}
+            </React.Fragment>
+          ))}
+        </motion.div>
+      </div>
+
+      {/* Step Content */}
+      <div className="party-setup-content">
+        <AnimatePresence mode="wait">
+          {setupStep === 'campaign' && (
+            <motion.div
+              key="campaign"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="party-setup-step-panel"
+            >
+              <h2 className="party-setup-section-title">
+                <span>⚔️</span> Choose Your Campaign
+              </h2>
+
+              {/* Campaign Theme — Dropdown */}
+              <div className="party-setup-field">
+                <label className="party-setup-label">Campaign Theme</label>
+                <select
+                  className="party-setup-select"
+                  value={selectedTheme}
+                  onChange={e => setSelectedTheme(e.target.value)}
+                >
+                  {CAMPAIGN_THEMES.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.label} — {t.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Starting Town — Dropdown */}
+              <div className="party-setup-field">
+                <label className="party-setup-label">Starting Town</label>
+                <select
+                  className="party-setup-select"
+                  value={selectedTown}
+                  onChange={e => setSelectedTown(e.target.value)}
+                >
+                  {CAMPAIGN_TOWNS.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.label} — {t.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Story Hook — Dropdown */}
+              <div className="party-setup-field">
+                <label className="party-setup-label">Story Hook</label>
+                <select
+                  className="party-setup-select"
+                  value={selectedHook}
+                  onChange={e => setSelectedHook(e.target.value)}
+                >
+                  {STORY_HOOKS.map(h => (
+                    <option key={h.id} value={h.id}>
+                      {h.label} — {h.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <motion.button
+                className="party-setup-next-btn"
+                whileHover={{ scale: 1.02, boxShadow: '0 0 30px rgba(139, 92, 246, 0.4)' }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSetupStep('voice')}
+              >
+                Next: Narrator Voice →
+              </motion.button>
+            </motion.div>
+          )}
+
+          {setupStep === 'voice' && (
+            <motion.div
+              key="voice"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="party-setup-step-panel"
+            >
+              <NarratorVoiceSetup
+                voiceEnabled={isVoiceEnabled}
+                dmVoice={currentDmVoice}
+                voiceSettings={currentVoiceSettings}
+                onToggleVoice={toggleVoice}
+                onVoiceChange={changeVoice}
+                onSettingsChange={changeSettings}
+              />
+
+              <div className="party-setup-nav-row">
+                <motion.button
+                  className="party-setup-back-btn"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSetupStep('campaign')}
+                >
+                  ← Campaign
+                </motion.button>
+                <motion.button
+                  className="party-setup-next-btn"
+                  whileHover={{ scale: 1.02, boxShadow: '0 0 30px rgba(139, 92, 246, 0.4)' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSetupStep('party')}
+                >
+                  Next: Create Party →
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {setupStep === 'party' && (
+            <motion.div
+              key="party"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="party-setup-step-panel"
+            >
+              {/* Summary Chips */}
+              <div className="party-setup-summary-chips">
+                {[
+                  CAMPAIGN_THEMES.find(t => t.id === selectedTheme)?.label,
+                  CAMPAIGN_TOWNS.find(t => t.id === selectedTown)?.label,
+                  STORY_HOOKS.find(h => h.id === selectedHook)?.label,
+                ].map((label, i) => (
+                  <span key={i} className="party-setup-chip">
+                    {label}
+                  </span>
+                ))}
+                <button
+                  className="party-setup-chip-edit"
+                  onClick={() => setSetupStep('campaign')}
+                >
+                  ✎ Change
+                </button>
+              </div>
+
+              <h2 className="party-setup-section-title">
+                <span>🛡️</span> Your Party ({party.length} heroes)
+              </h2>
+
+              {/* Party Members */}
+              {party.length === 0 ? (
+                <div className="party-setup-empty">
+                  <p>No characters yet. Create your first party member!</p>
+                </div>
+              ) : (
+                <div className="party-setup-members">
+                  {party.map((member, idx) => (
+                    <motion.div
+                      key={member.id}
+                      className="party-member-card"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      style={{
+                        borderColor: PLAYER_COLORS[idx % PLAYER_COLORS.length] + '40',
+                      }}
+                    >
+                      <div
+                        className="party-member-color-dot"
+                        style={{ background: PLAYER_COLORS[idx % PLAYER_COLORS.length] }}
+                      />
+                      <div className="party-member-info">
+                        <div className="party-member-name">{member.name}</div>
+                        <div className="party-member-class">{member.race} {member.class}</div>
+                        <div className="party-member-stats">
+                          HP {member.hp}/{member.maxHp} • AC {member.ac}
+                        </div>
+                      </div>
+                      <button
+                        className="party-member-remove"
+                        onClick={() => removeCharacter(member.id)}
+                      >
+                        ✕
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* Character Creator Toggle */}
+              {!showCreator ? (
+                <motion.button
+                  className="party-setup-add-btn"
+                  whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowCreator(true)}
+                >
+                  + Create Character
+                </motion.button>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="party-setup-creator-wrap"
+                >
+                  <CharacterCreator onComplete={handleCharacterCreated} />
+                  <button
+                    className="party-setup-cancel-creator"
+                    onClick={() => setShowCreator(false)}
+                  >
+                    Cancel
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Bottom Nav */}
+              <div className="party-setup-nav-row" style={{ marginTop: '20px' }}>
+                <motion.button
+                  className="party-setup-back-btn"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSetupStep('voice')}
+                >
+                  ← Narrator
+                </motion.button>
+                <motion.button
+                  className={`party-setup-start-btn ${party.length === 0 || hasStarted ? 'disabled' : ''}`}
+                  whileHover={party.length > 0 && !hasStarted ? { scale: 1.04, boxShadow: '0 0 40px rgba(139, 92, 246, 0.5)' } : {}}
+                  whileTap={party.length > 0 && !hasStarted ? { scale: 0.96 } : {}}
+                  onClick={startGame}
+                  disabled={party.length === 0 || hasStarted}
+                >
+                  {hasStarted
+                    ? '⏳ Loading Adventure...'
+                    : `⚔️ Begin Adventure with ${party.length === 1 ? '1 Hero' : `${party.length} Heroes`}`}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

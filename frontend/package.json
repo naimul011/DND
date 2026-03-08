@@ -91,7 +91,7 @@
     "dotenv": "^17.2.2",
     "electron-serve": "^3.0.0",
     "electron-store": "^7.0.3",
-    "framer-motion": "^10.16.0",
+    "framer-motion": "^10.18.0",
     "groq-sdk": "^0.5.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",

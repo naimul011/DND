@@ -4,8 +4,11 @@
  * All UI components for the D&D game page, organized by role:
  *
  * Setup:
- *   - PartySetupScreen  — Pre-game campaign + party creation flow
- *   - CharacterCreator   — Multi-step character wizard
+ *   - GameMainMenu       — Animated main menu with AAA game feel
+ *   - GameSettingsPanel   — Settings dropdown (Graphics, Audio, Controls)
+ *   - NarratorVoiceSetup  — Pre-game DM/narrator voice configuration
+ *   - PartySetupScreen    — Pre-game campaign + party creation flow
+ *   - CharacterCreator    — Multi-step character wizard
  *
  * Game:
  *   - MessageBubble      — Chat message (DM / player / system)
@@ -19,6 +22,9 @@
  *   - VoiceControls      — DM TTS settings
  */
 
+export { default as GameMainMenu } from './GameMainMenu';
+export { default as GameSettingsPanel } from './GameSettingsPanel';
+export { default as NarratorVoiceSetup } from './NarratorVoiceSetup';
 export { default as PartySetupScreen } from './PartySetupScreen';
 export { default as CharacterCreator } from './CharacterCreator';
 export { default as MessageBubble } from './MessageBubble';
